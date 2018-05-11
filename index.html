@@ -1,0 +1,167 @@
+<style>
+body {
+  background: #000;
+  padding: 0;
+  color: #fff;
+}
+
+table {
+  width: 100%;
+  border: 1rem solid transparent;
+}
+
+thead {
+  color: #999;
+}
+
+caption {
+  font-size: 1.25rem;
+  background: #333;
+  color: #999;
+}
+
+td, th {
+  text-align: center;
+}
+</style>
+
+<table>
+  <caption>Most Recent Pricing</caption>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Price</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Now</td>
+      <td id="priceNow"></td>
+    </tr>
+    <tr>
+      <td id="date"></td>
+      <td id="priceLastDay"></td>
+    </tr>
+  </tbody>
+</table>
+
+<table>
+  <caption>Mayer Multiple</caption>
+  <tbody>
+    <tr>
+      <td id="mayerMultiple"></td>
+    </tr>
+  </tbody>
+</table>
+
+<table>
+  <caption>Moving Averages</caption>
+  <thead>
+    <tr>
+      <th>Period</th>
+      <th>Simple</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>30 days</td>
+      <td id="ma30d"></td>
+    </tr>
+    <tr>
+      <td>60 days</td>
+      <td id="ma60d"></td>
+    </tr>
+    <tr>
+      <td>120 days</td>
+      <td id="ma120d"></td>
+    </tr>
+  </tbody>
+</table>
+
+<table>
+  <caption>Fibonacci</caption>
+  <thead>
+    <tr>
+      <th>Period</th>
+      <th>Low</th>
+      <th>23.6%</th>
+      <th>38.2%</th>
+      <th>50.0%</th>
+      <th>61.8%</th>
+      <th>High</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>30 days</td>
+      <td id="lo30"></td>
+      <td id="fib30a"></td>
+      <td id="fib30b"></td>
+      <td id="fib30c"></td>
+      <td id="fib30d"></td>
+      <td id="hi30"></td>
+    </tr>
+    <tr>
+      <td>60 days</td>
+      <td id="lo60"></td>
+      <td id="fib60a"></td>
+      <td id="fib60b"></td>
+      <td id="fib60c"></td>
+      <td id="fib60d"></td>
+      <td id="hi60"></td>
+    </tr>
+    <tr>
+      <td>120 days</td>
+      <td id="lo120"></td>
+      <td id="fib120a"></td>
+      <td id="fib120b"></td>
+      <td id="fib120c"></td>
+      <td id="fib120d"></td>
+      <td id="hi120"></td>
+    </tr>
+  </tbody>
+</table>
+
+<script>
+Promise
+  .all([
+    fetch("https://apiv2.bitcoinaverage.com/indices/local/history/BTCUSD?period=daily&format=json").then(res => res.json()),
+    fetch("https://apiv2.bitcoinaverage.com/indices/local/history/BTCUSD?period=alltime&format=json").then(res => res.json())
+  ])
+  .then(update);
+
+function update([daily, alltime]) {
+  const bindings = {
+    date: alltime[0].time.split(' ')[0],
+    priceNow: daily[0].average,
+    priceLastDay: alltime[0].average,
+    mayerMultiple: alltime[0].average / (alltime.slice(0, 200).map(({ average }) => parseFloat(average)).reduce((sum, x) => sum + x, 0) / 200),
+    ma30d: alltime.slice(0, 30).map(({ average }) => average).reduce((sum, x) => sum + x, 0) / 30,
+    ma60d: alltime.slice(0, 60).map(({ average }) => average).reduce((sum, x) => sum + x, 0) / 60,
+    ma120d: alltime.slice(0, 120).map(({ average }) => average).reduce((sum, x) => sum + x, 0) / 120,
+    lo30: alltime.slice(0, 30).map(({ low }) => parseFloat(low)).reduce((lowest, low) => lowest == null || lowest > low ? low : lowest, null),
+    hi30: alltime.slice(0, 30).map(({ high }) => parseFloat(high)).reduce((highest, high) => highest == null || highest < high ? high : highest, null),
+    lo60: alltime.slice(0, 60).map(({ low }) => parseFloat(low)).reduce((lowest, low) => lowest == null || lowest > low ? low : lowest, null),
+    hi60: alltime.slice(0, 60).map(({ high }) => parseFloat(high)).reduce((highest, high) => highest == null || highest < high ? high : highest, null),
+    lo120: alltime.slice(0, 120).map(({ low }) => parseFloat(low)).reduce((lowest, low) => lowest == null || lowest > low ? low : lowest, null),
+    hi120: alltime.slice(0, 120).map(({ high }) => parseFloat(high)).reduce((highest, high) => highest == null || highest < high ? high : highest, null)
+  };
+
+  bindings.fib30a = bindings.lo30 + (bindings.hi30 - bindings.lo30) * 0.236;
+  bindings.fib30b = bindings.lo30 + (bindings.hi30 - bindings.lo30) * 0.382;
+  bindings.fib30c = bindings.lo30 + (bindings.hi30 - bindings.lo30) * 0.5;
+  bindings.fib30d = bindings.lo30 + (bindings.hi30 - bindings.lo30) * 0.618;
+
+  bindings.fib60a = bindings.lo60 + (bindings.hi60 - bindings.lo60) * 0.236;
+  bindings.fib60b = bindings.lo60 + (bindings.hi60 - bindings.lo60) * 0.382;
+  bindings.fib60c = bindings.lo60 + (bindings.hi60 - bindings.lo60) * 0.5;
+  bindings.fib60d = bindings.lo60 + (bindings.hi60 - bindings.lo60) * 0.618;
+
+  bindings.fib120a = bindings.lo120 + (bindings.hi120 - bindings.lo120) * 0.236;
+  bindings.fib120b = bindings.lo120 + (bindings.hi120 - bindings.lo120) * 0.382;
+  bindings.fib120c = bindings.lo120 + (bindings.hi120 - bindings.lo120) * 0.5;
+  bindings.fib120d = bindings.lo120 + (bindings.hi120 - bindings.lo120) * 0.618;
+
+  Object.keys(bindings).forEach(key => document.getElementById(key).innerHTML = isNaN(bindings[key]) ? bindings[key] : Math.round(bindings[key] * 100) / 100);
+}
+</script>
